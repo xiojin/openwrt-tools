@@ -1,0 +1,35 @@
+#!/bin/bash /etc/rc.common
+
+START=99
+STOP=50
+
+# Parameters
+cfd_bin="/usr/bin/cloudflared"
+cfd_token="your_token"
+
+function screen_pid(){
+    screen -ls | grep -oE "[0-9]+\.cloudflared\s+\((Attached|Detached)\)" | sed -e "s/\..*$//g"
+}
+
+start(){
+    # Start Cloudflare
+    echo -e "Starting Cloudflared..."
+    if [[ $(screen -ls | grep -wc "cloudflared") -eq 0 ]]; then
+        screen -dmS cloudflared ${cfd_bin} --protocol http2 --no-autoupdate tunnel run --token ${cfd_token}
+        echo -e "Cloudflared is starting now"
+    fi
+}
+
+stop(){
+    echo -e "Stopping Cloudflared..."
+    screen -wipe > /dev/null 2>&1
+    if [[ "$(screen_pid)" == '' ]]; then
+        echo -e "Cloudflared is not running"
+    else
+        until [[ "$(screen_pid)" == '' ]]; do
+            kill $(screen_pid)
+            echo -e "Cloudflared stopped"
+            sleep 5
+        done
+    fi
+}
